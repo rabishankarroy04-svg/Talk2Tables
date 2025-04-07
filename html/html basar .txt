@@ -1,0 +1,63 @@
+<html>
+<!-- ***Head Code***--!>
+<head>  
+<title>This is my first web page</title>
+</head>  
+
+<!-- ***Body Code Start***--!>
+<body bgcolor="#a3b3c3">
+<FONT COLOR="BLUE">
+<H1 ALIGN ="CENTER">KAMRABAD UCHCHA VIDYALAYA</H1>
+</FONT>
+<HR SIZE="5" COLOR="GREEN">
+<!-- ***Hyperlink***--!>
+<A HREF="ABC.HTML"><H2>CLICK HERE</H2></A>
+<CENTER>
+
+<!-- ***Image Insert***--!>
+<IMG SRC="ABC.JPG" HEIGHT="100" WIDTH="100">
+</CENTER>
+
+<!-- ***Order & Unorder List***--!>
+<H3 >MY H.S SUBJECTS</H1>
+<ol>
+<li>Compulsory Language</li>
+<ol type="i">
+<li>BNGA</li>
+<li>ENGB</li>
+</ol>
+<li>Compulsory Elective</li>
+<ol type="A">
+<li>PHYS</li>
+<li>CHEM</li>
+<LI>MATH</LI>
+</ol>
+<li>Optional Elective</li>
+<UL TYPE="SQUARE">
+<LI>COMS</LI>
+</UL>
+</ol>
+
+<!-- ***SimpleTable***--!>
+
+<TABLE BORDER="2" WIDTH="20%" ALIGN="CENTER" BGCOLOR="PINK">
+<TR ALIGN="CENTER"><TD>A</TD><TD>B</TD></TR>
+<TR ALIGN="CENTER"><TD>C</TD><TD>D</TD></TR>
+<TR ALIGN="CENTER"><TD>E</TD><TD>F</TD></TR>
+<TR></TR>
+</TABLE>
+<BR>
+
+<!-- ***Table with rowspan and colspan***--!>
+
+<TABLE BORDER="2" WIDTH="50%" ALIGN="CENTER" BGCOLOR="YELLOW">
+<TR ALIGN="CENTER"><TD COLSPAN="2">KAMRABAD UCHCHA VIDYALAYA</TD></TR>
+<TR ALIGN="CENTER"><TD ROWSPAN="3">STREAMS</TD><TD>SCIENCE</TD></TR>
+<TR ALIGN="CENTER"><TD>ARTS</TD></TR>
+<TR ALIGN="CENTER"><TD>COMMERCE</TD></TR>
+</TABLE>
+
+<HR SIZE="5" COLOR="GREEN">
+<H4 ALIGN ="CENTER">THANK YOU</H4>
+</body>
+</html>

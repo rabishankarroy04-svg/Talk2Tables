@@ -1,0 +1,8 @@
+edit web wikipedia page =
+
+document.body.contentEditable=true  
+
+
+to make bulk find and replace on any website=
+
+document.getElementByld('divID').innerHTML=document.getElementByld('divID').innerHTML.replace(/before/g,"after");

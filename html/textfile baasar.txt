@@ -1,0 +1,28 @@
+//name,dob    adress-house no,street name,village,pin code//
+#include<iostream>
+using namespace std;
+struct myself
+{char name[50];
+ char sn[50];
+ char cn[50];
+ int pc;
+ int hn;
+ int dob;
+ int dob1;
+ int dob2;
+};
+int main()
+{myself s;
+ cout<<"enter your name: ";
+ cin>>s.name;
+ cout<<"enter your date of birth: ";cin>>s.dob;cout<<"/";cin>>s.dob2;cout<<"/";cin>>s.dob1;
+ cout<<"enter your house no: ";
+ cin>>s.hn;
+ cout<<"enter your street name: ";
+ cin>>s.sn;
+ cout<<"enter your city name: ";
+ cin>>s.cn; 
+ cout<<"enter your pin code: ";
+ cin>>s.pc;
+ return 0;
+}

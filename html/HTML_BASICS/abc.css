@@ -1,0 +1,58 @@
+html{
+    height: 100%;
+    width: 100%;
+    margin: 20px;
+}
+
+body{
+    color:rgb(244, 235, 58);
+    background-color:black;
+    text-align: center;
+}
+h1{
+    margin: 20px;
+    text-align: center;
+    color:rgb(15, 112, 67); /* if we add "!important" after brown then all h1 will be colored as brown*/
+}
+h2{
+    color:#a7316c;
+    text-align: center;
+
+*{
+    margin: 10px;;
+    padding:0;
+}
+
+
+#first-heading{
+    color:grey;
+}
+/*
+p{
+    text-align: center;
+}
+ol{
+    text-align: center;
+}
+*/
+.center{
+    text-align: center;
+    line: height 1.5em;;
+}
+.upper{
+    text-transform: uppercase;
+}
+li{
+    font-style: italic;
+}
+article p{
+  color: blueviolet;
+  font-style: bold;
+}
+
+/*article{
+    border:5px solid purple;
+}
+*{
+    border:5px solid purple;
+}

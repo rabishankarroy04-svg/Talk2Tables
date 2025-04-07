@@ -1,0 +1,12 @@
+/*BORDER BOX*/
+
+#test{
+    box-sizing: border-box;
+    height: 200px;
+    width: 600px;
+    background-color: blanchedalmond;
+    padding: 60px;
+    margin: 100px;
+    border:10px solid rgb(130, 7, 7);
+
+}

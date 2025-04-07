@@ -1,0 +1,20 @@
+<html>
+ <head> 
+<title>DAS TRAVEL</title></head> 
+<br><font color="red"><center><h1>  	EAST India</h1></center></font>
+<body bgcolor="lightgray"> <hr><center><h2> Packages</h2></center> <font size="5" color="blue">
+<center><p
+>Kaziranga National Park, Assam - Home to the One Horned Rhino. ... :- Rs.15000/- per person Transport: Train-Bus-Train
+<br> Majuli, Assam - World's Largest Fresh Water Island. ... :- Rs.10000/- By Bus
+<br> Darjeeling, West Bengal - Queen of The Himalayas. ...: 10 days Rs.15000/- from Howrah to Howrah by Train
+<br> Tawang, Arunachal Pradesh - The birthplace of Dalai Lama.: 15 days Rs. 15000/- per person
+ </p> </center> 
+</font> <hr><center><h2> Image Gallery</h2></center>
+ <img src="kolkata.jpg" height="180" width="330">
+ <img src="Kanyakumari.jpg" height="180" width="330"> 
+<img src="Kerela1.jpg" height="180" width="330"> 
+<img src="Munnar.jpg" height="180" width="330">
+
+ <hr> <a href="travelhome.html">Home<br><a href="NorthEastIndia.html">Prev</a>
+</body>
+</html>

@@ -1,0 +1,83 @@
+.nav-bar {
+  align-items: center;
+  display: inline-flex;
+  gap: 59px;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.nav-bar .text-wrapper {
+  color: #000000;
+  font-family: "Inter", Helvetica;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: normal;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.nav-bar .group {
+  height: 60px;
+  position: relative;
+  width: 117px;
+}
+
+.nav-bar .overlap-group {
+  height: 60px;
+  position: relative;
+  width: 115px;
+}
+
+.nav-bar .rectangle {
+  background-color: #d9d9d9;
+  border-radius: 19px;
+  height: 50px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 115px;
+}
+
+.nav-bar .sign-up {
+  color: #000000;
+  font-family: "Inter", Helvetica;
+  font-size: 20px;
+  font-weight: 700;
+  left: 17px;
+  letter-spacing: 0;
+  line-height: normal;
+  position: absolute;
+  top: 12px;
+}
+
+.nav-bar .overlap-wrapper {
+  height: 60px;
+  margin-right: -2px;
+  position: relative;
+  width: 117px;
+}
+
+.nav-bar .div {
+  border: 1px solid;
+  border-color: #000000;
+  border-radius: 19px;
+  height: 50px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 115px;
+}
+
+.nav-bar .sign-in {
+  color: #000000;
+  font-family: "Inter", Helvetica;
+  font-size: 20px;
+  font-weight: 700;
+  left: 21px;
+  letter-spacing: 0;
+  line-height: normal;
+  position: absolute;
+  top: 12px;
+}

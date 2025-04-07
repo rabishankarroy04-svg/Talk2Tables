@@ -1,0 +1,8 @@
+Name: Kathakali Das
+Email: kd89@gmail.com
+Phone: 1234567780
+University: MAKAUT
+University ID: 12200223022
+Department: IT
+YGPA: 8.39
+Total Marks: 1270

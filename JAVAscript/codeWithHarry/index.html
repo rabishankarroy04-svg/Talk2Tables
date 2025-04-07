@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+        "use strict";
+        // let a = 35;
+        //let a="Me";
+        //const a=45;
+        let a=45;
+        a=4550+3;
+        console.log(a)
+
+        //Numbers , Objects , Booleans , string,Underfined,null
+    
+        function hello(){
+            console.log("Hey How're you?");
+        }
+
+        let obj_a ={
+            r:43,
+            m:64,
+
+            func: function myFunc(number){
+                console.log("The number is "+number);
+            }
+        }
+
+        document.addEventListener("click",function click(){
+            console.log("Clicked");
+            //alert("Hello")
+            let conf = confirm("Are you sure?");
+            console.log(conf);
+        })
+
+        let arr=[45,90,89];
+        console.log(this);
+        /*function myFunc(number){
+                console.log("The number is "+this);
+            }*/
+        
+        let myFunc = (number)=>{
+            console.log("The number is "+this);
+        }
+        myFunc();
+        let mobj={
+            a:this,
+            myFunc: (number)=>{
+                console.log(this);
+            }
+        }
+        mobj.myFunc();
+        console.log(mobj.a);
+
+        setTimeout(()=>{
+            console.log("Yayy");
+        },2000);
+        console.log("below script");
+
+        
+    </script>
+</head>
+<body>
+    <h1>Welcome</h1>
+</body>
+</html>
