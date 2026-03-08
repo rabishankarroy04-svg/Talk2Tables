@@ -1,49 +1,36 @@
-import sqlite3
+import os
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import certifi
 
-conn = sqlite3.connect("users.db")
-cursor = conn.cursor()
+load_dotenv()
 
-# users table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    full_name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT NOT NULL,
-    company_name TEXT NOT NULL,
-    designation TEXT NOT NULL,
-    password TEXT NOT NULL,
-    profile_photo TEXT,
-    registered_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/ai_dashboard")
 
-# datasets table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS datasets(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_email TEXT NOT NULL,
-    filename TEXT NOT NULL,
-    content TEXT NOT NULL,
-    rows_count INTEGER,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_email) REFERENCES users(email)
-)
-""")
+try:
+    print("Connecting to MongoDB Atlas...")
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000, tls=True, tlsInsecure=True)
+    client.server_info() # trigger connection
+    db = client.get_database()
+    
+    # Initialize Collections (MongoDB creates them on first insert, but we can setup indexes here)
+    if "users" not in db.list_collection_names():
+        db.create_collection("users")
+        db.users.create_index("email", unique=True)
+        print("Created 'users' collection with unique index on email.")
+        
+    if "datasets" not in db.list_collection_names():
+        db.create_collection("datasets")
+        db.datasets.create_index("user_email")
+        print("Created 'datasets' collection.")
+        
+    if "chats" not in db.list_collection_names():
+        db.create_collection("chats")
+        db.chats.create_index("chat_id", unique=True)
+        db.chats.create_index("user_email")
+        print("Created 'chats' collection.")
 
-# chats table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS chats(
-    id TEXT PRIMARY KEY,
-    user_email TEXT NOT NULL,
-    title TEXT NOT NULL,
-    messages TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_email) REFERENCES users(email)
-)
-""")
+    print("\nDatabase system initialized with Users, Datasets, and Chats collections in MongoDB successfully!")
 
-conn.commit()
-conn.close()
-
-print("Database system initialized with Users, Datasets, and Chats tables successfully")
+except Exception as e:
+    print(f"Failed to initialize MongoDB: {e}")

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import DashboardPanel from "./DashboardPanel";
 import Auth from "./Auth";
-import { generateSqlForQuery, generateDashboardConfig } from "./geminiService";
+import { generateDashboardConfig } from "./geminiService";
 import "./index.css";
 
 // Use global Papa loaded from CDN to avoid bundling/minified traversal issues
@@ -195,7 +195,7 @@ function App() {
       dashboard,
       timestamp: new Date(),
     };
-    
+
     setChats(prev => {
       const prevMessages = prev[chatId]?.messages || [];
       const updatedMessages = [...prevMessages, msg];
@@ -238,7 +238,7 @@ function App() {
   // Delete chat
   const handleDeleteChat = useCallback((chatIdToDelete, e) => {
     e.stopPropagation(); // prevent opening the chat
-    
+
     // 1. Remove from local state immediately
     setChats(prev => {
       const newChats = { ...prev };
@@ -275,7 +275,7 @@ function App() {
           setCsvData(cleanedData);
           setCsvColumns(result.meta.fields || Object.keys(cleanedData[0]));
           setDataFileName(`${data.filename} (stored)`);
-          
+
           handleNewChat(); // Start new dashboard context for this data
         }
       }
@@ -312,7 +312,7 @@ function App() {
           .catch(err => console.error("Dataset sync bypassed (Backend may be offline):", err));
 
         const cols = result.meta.fields || Object.keys(result.data[0]);
-        
+
         let chatId = currentChatId;
         if (!chatId) {
           chatId = Date.now().toString();
@@ -385,142 +385,45 @@ function App() {
       }
 
       const sampleRows = csvData.slice(0, 8);
-      
+
       // Extract up to last 4 messages for conversational memory
       const pastMessages = (chats[chatId]?.messages || [])
         .slice(-4)
         .map(m => ({ role: m.role, text: m.text }));
 
       // ==========================================
-      // STEP 1: Generates ONLY the SQL Query
+      // Call LangChain Backend for Dashboard Config
       // ==========================================
-      let sqlResult = await generateSqlForQuery(
+      const finalResult = await generateDashboardConfig(
         query,
-        csvColumns,
-        sampleRows,
         csvData,
         pastMessages
       );
 
-      let localExecutionData = [];
-      let generatedTable = null;
-      let hasDashboard = false;
-
-      // Smart Execution: Execute generated query against FULL dataset
-      if (sqlResult.sql && window.alasql) {
-        try {
-          console.log("SQL-First Logic: Executing generated query...", sqlResult.sql);
-          // Standardize the table name in the query to '?' which alasql maps to our injected csvData
-          const executableSql = sqlResult.sql.replace(/dataset/gi, "?");
-          localExecutionData = window.alasql(executableSql, [csvData]);
-          
-          if (localExecutionData && localExecutionData.length > 0) {
-            console.log(`Accuracy Check: SQL yielded ${localExecutionData.length} records.`);
-            
-            // Generate Data Table
-            generatedTable = {
-              show: true,
-              columns: Object.keys(localExecutionData[0]),
-              rows: localExecutionData.map(row => 
-                Object.keys(localExecutionData[0]).map(col => row[col] !== undefined && row[col] !== null ? row[col] : "")
-              ),
-              title: `Data Table (${localExecutionData.length} records found)`
-            };
-            
-            hasDashboard = true;
-          }
-        } catch (sqlErr) {
-          console.warn("SQL Execution failed:", sqlErr);
-        }
-      }
-
-      // If no valid data came out of SQL, we can't build a dashboard
-      if (localExecutionData.length === 0) {
-         addMessageToChat(
-          chatId,
-          "ai",
-          sqlResult.sql ? "Sorry, the generated data query returned no results for your dataset." : "I couldn't generate a valid query for that request.",
-          null
-        );
-        setIsLoading(false);
-        lastSentRef.current = "";
-        return;
-      }
-
-      // ==========================================
-      // STEP 2: Generate UI Configuration Config based on exact data
-      // ==========================================
-      let configResult = await generateDashboardConfig(
-        query, 
-        localExecutionData, 
-        csvColumns, 
-        pastMessages
-      );
-      
       console.log("--- DEBUG PIPELINE ---");
-      console.log("1. SQL Generated:", sqlResult.sql);
-      console.log("2. Local Data (Rows):", localExecutionData.length, localExecutionData.slice(0, 2));
-      console.log("3. UI Config Generated:", JSON.stringify(configResult, null, 2));
+      console.log("UI Config Generated:", JSON.stringify(finalResult, null, 2));
       console.log("----------------------");
 
-      // We explicitly attach the generated table
-      configResult.table = generatedTable;
+      let hasDashboard = false;
 
-      // Ensure Charts have data injected
-      if (configResult.charts && configResult.charts.length > 0) {
-         configResult.charts.forEach(chart => {
-            chart.data = localExecutionData;
-         });
-         hasDashboard = true;
-      }
+      // Extract SQL to display table if records exist (fallback from old architecture)
+      // The LangChain prompt currently returns the exact data directly for charting.
 
-      // Format Stat Values (inject actual localized numeric values if necessary)
-      if (configResult.stats && configResult.stats.length > 0) {
-        if (localExecutionData.length === 1) {
-          const summaryRow = localExecutionData[0];
-          configResult.stats = configResult.stats.map(stat => {
-            const statKey = stat.label; // Based on the prompt rules, the label should closely map to the data key
-            
-            // Find fuzzy matching key in SQL result if exact doesn't match
-            const statLabelClean = statKey.toLowerCase().replace(/[^a-z0-9]/g, "");
-            const matchingKey = Object.keys(summaryRow).find(key => {
-              const keyClean = key.toLowerCase().replace(/[^a-z0-9]/g, "");
-              return keyClean === statLabelClean || keyClean.includes(statLabelClean) || statLabelClean.includes(keyClean);
-            });
+      // We manually build a generated table if there is data
+      if (finalResult.charts && finalResult.charts.length > 0 && finalResult.charts[0].data && finalResult.charts[0].data.length > 0) {
+        const firstChartData = finalResult.charts[0].data;
+        const columns = Object.keys(firstChartData[0] || {});
 
-            if (matchingKey !== undefined) {
-               const rawVal = summaryRow[matchingKey];
-               let formattedVal = String(rawVal);
-               if (typeof rawVal === "number") {
-                 formattedVal = rawVal.toLocaleString();
-               }
-               return { ...stat, value: formattedVal };
-            }
-            return stat;
-          });
-        } else {
-           // STRICT ACCURACY ENFORCEMENT
-           // If the local execution returns multiple rows (a trend/grouping), 
-           // any 'stats' generated by the AI are mathematically hallucinated.
-           // We strip them out completely to guarantee 100% data accuracy.
-           configResult.stats = [];
-        }
+        finalResult.table = {
+          show: true,
+          columns: columns,
+          rows: firstChartData.map(row =>
+            columns.map(col => row[col] !== undefined && row[col] !== null ? row[col] : "")
+          ),
+          title: `Data Table (${firstChartData.length} records)`
+        };
         hasDashboard = true;
       }
-      
-      // Overwrite the analysis if the AI told us it was out of domain.
-      if (sqlResult.sql === "") {
-        configResult.stats = [];
-        configResult.charts = [];
-        hasDashboard = false;
-      }
-
-      const finalResult = {
-        ...configResult,
-        sql: sqlResult.sql
-      };
-
-
 
       // Store in Cache for future duplicate queries
       responseCacheRef.current[cacheKey] = finalResult;
@@ -626,7 +529,7 @@ function App() {
               <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{user.designation || "Executive"}</div>
             </div>
           </div>
-          
+
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ opacity: 0.5 }}>🏢</span> <span>{user.company || "No Company Data"}</span>
@@ -679,7 +582,7 @@ function App() {
                   }}
                 >
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>💬 {chat.title}</span>
-                  <button 
+                  <button
                     className="delete-btn"
                     onClick={(e) => handleDeleteChat(chat.id, e)}
                     style={{

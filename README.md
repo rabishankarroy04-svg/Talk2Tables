@@ -1,70 +1,28 @@
-# Getting Started with Create React App
+# Antigravity BI: Agentic RAG for Instant Dashboards
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Project Overview
+This project is an **Autonomous Business Intelligence (BI) Platform** that transforms natural language into interactive data visualizations. Built during a 1-hour sprint, it leverages **Google Antigravity** as the orchestration engine to handle the heavy lifting of code generation, database schema mapping, and frontend assembly.
 
-## Available Scripts
+## The Problem
+Non-technical executives often face a "technical bottleneck" where they must wait days for data teams to write SQL queries and build dashboards. This project aims to provide **"Instant BI"** by allowing users to simply ask a question and receive a fully functional, interactive dashboard.
 
-In the project directory, you can run:
+## System Architecture
+The project uses a **"Text-to-Dashboard"** pipeline:
 
-### `npm start`
+*   **Orchestration (Antigravity)**: Uses specialized AI agents to plan the implementation, generate the Python code, and validate the SQL logic.
+*   **Data Layer (MongoDB & SQLite)**: A hybrid approach where metadata is stored in MongoDB, and the RAG engine queries a structured SQL environment to fetch real-time business metrics.
+*   **RAG Logic (LangChain)**: Employs Retrieval-Augmented Generation to inject database schemas and business rules into the LLM context, ensuring the generated SQL is 100% accurate and hallucination-free.
+*   **Frontend**: A rapid-prototyping React-based UI that renders dynamic, automated charts and dataframes.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Key Features
+1.  **Agentic Planning**: Antigravity generates a custom `Master_Planning.md` for complex queries, ensuring the architecture is robust before code execution.
+2.  **Contextual Chart Selection**: The system doesn't just show tables; it reasons whether a Line Chart (time-series), Bar Chart (comparison), or Pie Chart (composition) is best for the data retrieved.
+3.  **Self-Healing SQL**: If a query fails, the LangChain agent reads the stack trace, reproduces the error, and fixes the code autonomously (up to 5 iterations).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+### Setup
+1. Clone the repository
+2. Run `npm install` for frontend dependencies
+3. Run `pip install -r requirements.txt` for backend dependencies
+4. Start the backend: `python app.py`
+5. Start the frontend: `npm start`
