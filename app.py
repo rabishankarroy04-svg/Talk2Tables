@@ -6,6 +6,7 @@ import os
 import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 load_dotenv()
 
@@ -355,29 +356,37 @@ def generate_dashboard():
     data = request.json
     messages = data.get("messages", [])
     
-    api_key = os.getenv("REACT_APP_GROQ_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("REACT_APP_GEMINI_API_KEY")
     if not api_key:
-        return jsonify({"error": "API key missing"}), 500
+        return jsonify({"error": "GEMINI_API_KEY missing from .env"}), 500
         
     try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama-3.3-70b-versatile",
-                "messages": messages,
-                "temperature": 0,
-                "stream": False,
-                "response_format": {"type": "json_object"}
-            }
-        )
-        if response.status_code != 200:
-            return jsonify({"error": f"API Error: {response.text}"}), response.status_code
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        # Convert OpenAI message format to a single prompt string for Gemini
+        prompt = ""
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            prompt += f"{role.upper()}:\n{content}\n\n"
             
-        result = response.json()
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        
+        # Format the response to match what the frontend expects
+        # The frontend expects: { choices: [{ message: { content: "..." } }] }
+        result = {
+            "choices": [
+                {
+                    "message": {
+                        "content": response.text
+                    }
+                }
+            ]
+        }
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

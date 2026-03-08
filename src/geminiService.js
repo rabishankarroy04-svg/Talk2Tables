@@ -3,83 +3,93 @@
  * Replaces Gemini with high-speed Llama-3 models via Groq
  */
 
-
 /**
- * Sends a user query along with the dataset schema (and sample rows) to Groq.
- * Groq returns a JSON object describing how to build the dashboard.
+ * Step 1: Generates ONLY the SQL query needed to answer the user's question.
  */
-export async function generateDashboard(userQuery, columns, sampleRows, allData, chatHistory = []) {
+export async function generateSqlForQuery(userQuery, columns, sampleRows, allData, chatHistory = []) {
   const dataContext = buildDataContext(columns, sampleRows, allData);
 
-  const systemPrompt = `You are DashAI, an intelligent data visualization assistant. You receive a dataset and a user's natural language request. Your job is to:
-
-1. Understand what the user is asking for
-2. Analyze the data to find the relevant information
-3. Choose the best chart types to visualize the data
-4. Compute the actual data values from the provided dataset
-5. Provide insights and highlights
+  const systemPrompt = `You are DashAI, an expert SQL data analyst.
+You receive a dataset schema and a user's natural language request. 
+Your ONLY job is to write a highly optimized SQLite query to extract the answer from a table named 'dataset'.
 
 IMPORTANT RULES:
 - Always return VALID JSON only.
-- Do NOT include markdown code blocks like \`\`\`json. Return pure JSON text.
-- All numeric values must be actual numbers, not strings.
-- Choose chart types from: "bar", "line", "pie", "area", "composed"
-- For each chart, provide the processed data array ready for charting.
-- Include summary statistics (stats cards) when relevant.
-- Include a brief textual analysis.
+- Do NOT include markdown code blocks like \`\`\`json.
+- MUST return a JSON object with exactly one key: "sql".
+- ALIGNMENT: Use clear SQL aliases (AS) to name your columns so the frontend can easily read them (e.g., SUM(price) AS total_revenue).
 
-RESPONSE FORMAT (strict JSON):
+RESPONSE FORMAT:
 {
-  "title": "Dashboard title",
-  "sql": "Represent the logical SQL query that would produce this data from a table named 'dataset'",
-  "analysis": "Brief markdown analysis of the data and insights (2-4 sentences)",
-  "stats": [
-    {
-      "label": "Stat Label",
-      "value": "formatted value string",
-      "change": "+12.5%",
-      "positive": true
-    }
-  ],
-  "charts": [
-    {
-      "title": "Chart Title",
-      "type": "bar|line|pie|area",
-      "xKey": "name of x-axis field",
-      "yKeys": ["field1", "field2"],
-      "data": [
-        {"name": "Category A", "field1": 100, "field2": 50}
-      ]
-    }
-  ],
-  "highlights": [
-    "Key finding 1",
-    "Key finding 2"
-  ],
-  "table": {
-    "show": true,
-    "title": "Data Table",
-    "columns": ["col1", "col2"],
-    "rows": [["val1", "val2"]]
-  }
-}
-
-OUT OF DOMAIN RULE:
-If the user asks a question that is completely unrelated to the provided dataset columns, you MUST respond with a JSON object containing ONLY {"analysis": "I cannot answer that based on the currently uploaded dataset."}.`;
+  "sql": "SELECT ... FROM dataset ..."
+}`;
 
   const userMessage = `DATASET INFORMATION:
 ${dataContext}
 
 USER REQUEST: "${userQuery}"
 
-ANALYZE & GENERATE:
-Generate the dashboard configuration as JSON. 
+Return the JSON with the "sql" key.
+If the query is completely unrelated to the dataset, return {"sql": ""} `;
 
-CRITICAL FOR SQL:
-- The "sql" field must be a valid SQLite/Standard SQL query that accurately filters or aggregates the 'dataset' table to answer the user request.
-- This SQL will be executed on the FULL dataset locally.
-- Ensure the columns you SELECT in the "sql" match the columns you list in the "table" and "charts" fields.`;
+  return await fetchFromGroq(systemPrompt, userMessage, chatHistory);
+}
 
+/**
+ * Step 2: Generates the Dashboard UI Configuration (Charts, Stats, Analysis) 
+ * given the EXACT data resulting from the local SQL execution.
+ */
+export async function generateDashboardConfig(userQuery, localExecutionData, columns, chatHistory = []) {
+  const systemPrompt = `You are DashAI, an intelligent data visualization assistant.
+You are provided with a user's request and the EXACT JSON data resulting from executing a SQL query on their dataset.
+Your job is to design the UI components to display this data.
+
+IMPORTANT RULES:
+- Always return VALID JSON only.
+- Do NOT include markdown code blocks like \`\`\`json.
+- Provide a brief analysis of the data.
+- CONDITIONAL CHARTING: If the data represents a single numerical value or a single row of summary stats, return an empty "charts" array. Only provide "charts" for complex data trends.
+- THE DATA IS THE TRUTH: Use the exact keys from the provided data for your "stats" labels and "charts" axes (xKey, yKeys).
+- STRICT STATS RULE: If the provided data contains MULTIPLE rows, you MUST return an empty "stats" array. Do not attempt to mathematically calculate summary stats yourself. Only populate "stats" if the provided data is exactly ONE row.
+
+RESPONSE FORMAT (strict JSON):
+{
+  "title": "Dashboard title",
+  "analysis": "Brief markdown analysis of the actual data provided",
+  "stats": [
+    {
+      "label": "Data Key Name (e.g. total_revenue)",
+      "value": "Format how it should look (value is injected later)"
+    }
+  ],
+  "charts": [
+    {
+      "title": "Chart Title",
+      "type": "bar|line|pie|area",
+      "xKey": "x-axis data key name",
+      "yKeys": ["y-axis data key name"],
+      "data": [] 
+    }
+  ]
+}`;
+
+  // Send a sample of the SQL result to save tokens, but usually aggregated SQL results are small.
+  const dataSample = localExecutionData.slice(0, 50);
+
+  const userMessage = `USER REQUEST: "${userQuery}"
+
+EXACT SQL RESULT DATA (up to 50 rows):
+${JSON.stringify(dataSample, null, 2)}
+
+Design the JSON dashboard configuration for this data. Leave the charts "data" array EMPTY (it will be injected locally).`;
+
+  return await fetchFromGroq(systemPrompt, userMessage, chatHistory);
+}
+
+/**
+ * Shared helper to call the backend API
+ */
+async function fetchFromGroq(systemPrompt, userMessage, chatHistory) {
   try {
     const messages = [
       { role: "system", content: systemPrompt }
@@ -89,7 +99,7 @@ CRITICAL FOR SQL:
       chatHistory.slice(-4).forEach(msg => {
         messages.push({ 
           role: msg.role === "user" ? "user" : "assistant", 
-          content: msg.text || "Dashboard generated" 
+          content: msg.text || "Processed" 
         });
       });
     }
@@ -113,7 +123,16 @@ CRITICAL FOR SQL:
     }
 
     const data = await response.json();
-    return JSON.parse(data.choices[0].message.content.trim());
+    let content = data.choices[0].message.content.trim();
+    
+    // Robustly strip markdown code blocks if the AI includes them despite instructions
+    if (content.startsWith("```json")) {
+      content = content.substring(7, content.lastIndexOf("```")).trim();
+    } else if (content.startsWith("```")) {
+      content = content.substring(3, content.lastIndexOf("```")).trim();
+    }
+
+    return JSON.parse(content);
   } catch (error) {
     console.error("Groq API Error:", error);
     
@@ -125,12 +144,11 @@ CRITICAL FOR SQL:
     }
 
     return {
+      sql: "",
       title: "Error",
       analysis: `I encountered an issue: ${userFriendlyMsg} Please try again.`,
       stats: [],
       charts: [],
-      highlights: [],
-      table: null,
     };
   }
 }
@@ -160,5 +178,3 @@ function buildDataContext(columns, sampleRows, allData) {
 
   return context;
 }
-
-export default generateDashboard;

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import DashboardPanel from "./DashboardPanel";
 import Auth from "./Auth";
-import { generateDashboard } from "./geminiService";
+import { generateSqlForQuery, generateDashboardConfig } from "./geminiService";
 import "./index.css";
 
 // Use global Papa loaded from CDN to avoid bundling/minified traversal issues
@@ -391,7 +391,10 @@ function App() {
         .slice(-4)
         .map(m => ({ role: m.role, text: m.text }));
 
-      let result = await generateDashboard(
+      // ==========================================
+      // STEP 1: Generates ONLY the SQL Query
+      // ==========================================
+      let sqlResult = await generateSqlForQuery(
         query,
         csvColumns,
         sampleRows,
@@ -399,52 +402,130 @@ function App() {
         pastMessages
       );
 
-      const hasCharts = result.charts && result.charts.length > 0;
-      const hasStats = result.stats && result.stats.length > 0;
-      let hasDashboard = hasCharts || hasStats;
+      let localExecutionData = [];
+      let generatedTable = null;
+      let hasDashboard = false;
 
-      // Smart Execution: If the AI provided a logical SQL query, execute it
-      // against the FULL local dataset to ensure "every row" is shown.
-      if (result.sql && window.alasql) {
+      // Smart Execution: Execute generated query against FULL dataset
+      if (sqlResult.sql && window.alasql) {
         try {
-          console.log("Executing AI logic locally:", result.sql);
+          console.log("SQL-First Logic: Executing generated query...", sqlResult.sql);
           // Standardize the table name in the query to '?' which alasql maps to our injected csvData
-          const executableSql = result.sql.replace(/dataset/gi, "?");
-          const localExecutionData = window.alasql(executableSql, [csvData]);
+          const executableSql = sqlResult.sql.replace(/dataset/gi, "?");
+          localExecutionData = window.alasql(executableSql, [csvData]);
           
           if (localExecutionData && localExecutionData.length > 0) {
-            console.log(`Local SQL result: ${localExecutionData.length} rows`);
-            // Force table creation if it doesn't exist to satisfy the user request: "generate all the tables according to the input"
-            if (!result.table) {
-              result.table = {};
-            }
+            console.log(`Accuracy Check: SQL yielded ${localExecutionData.length} records.`);
             
-            // Populate the table with exact local data, overriding AI hallucinations about columns
-            result.table.show = true;
-            result.table.columns = Object.keys(localExecutionData[0]);
+            // Generate Data Table
+            generatedTable = {
+              show: true,
+              columns: Object.keys(localExecutionData[0]),
+              rows: localExecutionData.map(row => 
+                Object.keys(localExecutionData[0]).map(col => row[col] !== undefined && row[col] !== null ? row[col] : "")
+              ),
+              title: `Data Table (${localExecutionData.length} records found)`
+            };
             
-            result.table.rows = localExecutionData.map(row => 
-              result.table.columns.map(col => row[col] !== undefined && row[col] !== null ? row[col] : "")
-            );
-            
-            // Set a clean title with count
-            const baseTitle = result.table.title && !result.table.title.includes("records found") 
-              ? result.table.title 
-              : "Data Table";
-            result.table.title = `${baseTitle} (${localExecutionData.length} records found)`;
-            
-            // Ensure dashboard renders if it only contains the generated table
-            hasDashboard = hasDashboard || (result.table.rows && result.table.rows.length > 0);
+            hasDashboard = true;
           }
         } catch (sqlErr) {
-          console.warn("Local SQL execution failed, falling back to AI intuition:", sqlErr);
+          console.warn("SQL Execution failed:", sqlErr);
         }
       }
 
-      // Store in Cache for future duplicate queries
-      responseCacheRef.current[cacheKey] = result;
+      // If no valid data came out of SQL, we can't build a dashboard
+      if (localExecutionData.length === 0) {
+         addMessageToChat(
+          chatId,
+          "ai",
+          sqlResult.sql ? "Sorry, the generated data query returned no results for your dataset." : "I couldn't generate a valid query for that request.",
+          null
+        );
+        setIsLoading(false);
+        lastSentRef.current = "";
+        return;
+      }
 
-      addMessageToChat(chatId, "ai", result.analysis || "Here's what I found:", hasDashboard ? result : null);
+      // ==========================================
+      // STEP 2: Generate UI Configuration Config based on exact data
+      // ==========================================
+      let configResult = await generateDashboardConfig(
+        query, 
+        localExecutionData, 
+        csvColumns, 
+        pastMessages
+      );
+      
+      console.log("--- DEBUG PIPELINE ---");
+      console.log("1. SQL Generated:", sqlResult.sql);
+      console.log("2. Local Data (Rows):", localExecutionData.length, localExecutionData.slice(0, 2));
+      console.log("3. UI Config Generated:", JSON.stringify(configResult, null, 2));
+      console.log("----------------------");
+
+      // We explicitly attach the generated table
+      configResult.table = generatedTable;
+
+      // Ensure Charts have data injected
+      if (configResult.charts && configResult.charts.length > 0) {
+         configResult.charts.forEach(chart => {
+            chart.data = localExecutionData;
+         });
+         hasDashboard = true;
+      }
+
+      // Format Stat Values (inject actual localized numeric values if necessary)
+      if (configResult.stats && configResult.stats.length > 0) {
+        if (localExecutionData.length === 1) {
+          const summaryRow = localExecutionData[0];
+          configResult.stats = configResult.stats.map(stat => {
+            const statKey = stat.label; // Based on the prompt rules, the label should closely map to the data key
+            
+            // Find fuzzy matching key in SQL result if exact doesn't match
+            const statLabelClean = statKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const matchingKey = Object.keys(summaryRow).find(key => {
+              const keyClean = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+              return keyClean === statLabelClean || keyClean.includes(statLabelClean) || statLabelClean.includes(keyClean);
+            });
+
+            if (matchingKey !== undefined) {
+               const rawVal = summaryRow[matchingKey];
+               let formattedVal = String(rawVal);
+               if (typeof rawVal === "number") {
+                 formattedVal = rawVal.toLocaleString();
+               }
+               return { ...stat, value: formattedVal };
+            }
+            return stat;
+          });
+        } else {
+           // STRICT ACCURACY ENFORCEMENT
+           // If the local execution returns multiple rows (a trend/grouping), 
+           // any 'stats' generated by the AI are mathematically hallucinated.
+           // We strip them out completely to guarantee 100% data accuracy.
+           configResult.stats = [];
+        }
+        hasDashboard = true;
+      }
+      
+      // Overwrite the analysis if the AI told us it was out of domain.
+      if (sqlResult.sql === "") {
+        configResult.stats = [];
+        configResult.charts = [];
+        hasDashboard = false;
+      }
+
+      const finalResult = {
+        ...configResult,
+        sql: sqlResult.sql
+      };
+
+
+
+      // Store in Cache for future duplicate queries
+      responseCacheRef.current[cacheKey] = finalResult;
+
+      addMessageToChat(chatId, "ai", finalResult.analysis || "Here's what I found:", hasDashboard ? finalResult : null);
     } catch (err) {
       addMessageToChat(
         chatId,
