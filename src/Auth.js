@@ -10,6 +10,7 @@ const Auth = ({ onLogin }) => {
     company_name: "",
     designation: "",
     password: "",
+    profile_photo: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,12 +32,49 @@ const Auth = ({ onLogin }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setFormData(prev => ({ ...prev, profile_photo: dataUrl }));
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const url = isLogin ? "http://127.0.0.1:5000/api/login" : "http://127.0.0.1:5000/api/register";
+    const url = isLogin ? "http://localhost:5000/api/login" : "http://localhost:5000/api/register";
     
     if (!isLogin) {
       if (!validateEmail(formData.email)) {
@@ -55,6 +93,7 @@ const Auth = ({ onLogin }) => {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(formData),
       });
 
@@ -106,6 +145,17 @@ const Auth = ({ onLogin }) => {
               <div className="auth-input-group">
                 <label>Designation</label>
                 <input type="text" name="designation" value={formData.designation} onChange={handleChange} placeholder="Executive Manager" />
+              </div>
+              <div className="auth-input-group" style={{ gridColumn: "1 / -1" }}>
+                <label>Profile Photo (Optional)</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  {formData.profile_photo ? (
+                    <img src={formData.profile_photo} alt="Preview" style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-active)" }} />
+                  ) : (
+                    <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--bg-tertiary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", border: "1px solid var(--border-subtle)" }}>👤</div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ padding: "8px", background: "transparent", border: "1px dashed var(--border-subtle)", flex: 1, cursor: "pointer" }} />
+                </div>
               </div>
             </div>
           )}

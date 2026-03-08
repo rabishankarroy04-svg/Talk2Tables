@@ -106,7 +106,7 @@ function App() {
 
   // Derived state for current chat
   const currentChat = currentChatId ? chats[currentChatId] : null;
-  const messages = currentChat ? currentChat.messages : [];
+  const messages = React.useMemo(() => currentChat ? currentChat.messages : [], [currentChat]);
   const chatHistory = Object.values(chats).sort((a, b) => b.timestamp - a.timestamp);
 
   // Load default CSV on mount once user is logged in
@@ -137,7 +137,9 @@ function App() {
   const fetchUserDatasets = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/datasets/list?email=${user.email}`);
+      const res = await fetch(`http://localhost:5000/api/datasets/list`, {
+        credentials: "include"
+      });
       const data = await res.json();
       if (data.success) {
         setUserDatasets(data.datasets);
@@ -150,7 +152,9 @@ function App() {
   const fetchUserChats = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/chats/list?email=${user.email}`);
+      const res = await fetch(`http://localhost:5000/api/chats/list`, {
+        credentials: "include"
+      });
       const data = await res.json();
       if (data.success) {
         setChats(data.chats);
@@ -193,34 +197,34 @@ function App() {
     };
     
     setChats(prev => {
+      const prevMessages = prev[chatId]?.messages || [];
+      const updatedMessages = [...prevMessages, msg];
+      const title = prev[chatId]?.title || text.slice(0, 50);
+
+      // Fire-and-forget server sync with guaranteed freshest state
+      if (user) {
+        fetch("http://localhost:5000/api/chats/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            id: chatId,
+            title: title,
+            messages: updatedMessages
+          })
+        }).catch(err => console.error("Chat sync bypassed (Backend may be offline):", err));
+      }
+
       return {
         ...prev,
         [chatId]: {
           ...prev[chatId],
           timestamp: new Date(),
-          messages: [...(prev[chatId]?.messages || []), msg]
+          messages: updatedMessages,
+          title: title
         }
       };
     });
-
-    // Fire-and-forget server sync (outside of pure state reducer)
-    if (user) {
-      // Create a snapshot of the expected saved state for the API
-      const prevMessages = chats[chatId]?.messages || [];
-      const updatedMessages = [...prevMessages, msg];
-      const title = chats[chatId]?.title || text.slice(0, 50);
-
-      fetch("http://127.0.0.1:5000/api/chats/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: chatId,
-          email: user.email,
-          title: title,
-          messages: updatedMessages
-        })
-      }).catch(err => console.error("Chat sync bypassed (Backend may be offline):", err));
-    }
 
     return msg;
   };
@@ -260,7 +264,9 @@ function App() {
   // Handle Loading Stored Dataset
   const handleLoadStoredDataset = useCallback(async (datasetId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/datasets/get/${datasetId}`);
+      const res = await fetch(`http://localhost:5000/api/datasets/get/${datasetId}`, {
+        credentials: "include"
+      });
       const data = await res.json();
       if (data.success) {
         const result = Papa.parse(data.content, { header: true, skipEmptyLines: true });
@@ -293,11 +299,11 @@ function App() {
         setShowUpload(false);
 
         // Persist to Dashboard (Server)
-        fetch("http://127.0.0.1:5000/api/datasets/upload", {
+        fetch("http://localhost:5000/api/datasets/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
-            email: user.email,
             filename: file.name,
             content: text,
             rows_count: result.data.length
@@ -521,13 +527,19 @@ function App() {
           color: "var(--text-secondary)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-            <div style={{
-              width: "36px", height: "36px", borderRadius: "50%", background: "var(--accent-primary)",
-              color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold",
-              fontSize: "1rem"
-            }}>
-              {user.name && user.name.charAt(0).toUpperCase()}
-            </div>
+            {user.profile_photo ? (
+              <img src={user.profile_photo} alt="Profile" style={{
+                width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-subtle)", flexShrink: 0
+              }} />
+            ) : (
+              <div style={{
+                width: "36px", height: "36px", borderRadius: "50%", background: "var(--accent-primary)",
+                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold",
+                fontSize: "1rem", flexShrink: 0
+              }}>
+                {user.name && user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <div style={{ color: "#fff", fontWeight: "600", fontSize: "0.9rem" }}>{user.name}</div>
               <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{user.designation || "Executive"}</div>
@@ -628,8 +640,8 @@ function App() {
             </div>
           )}
           <div className="sidebar-footer-item">
-            <span>🤖</span>
-            <span>Powered by Gemini 2.5</span>
+            <span>🚀</span>
+            <span>Powered by Groq AI</span>
           </div>
           <button className="logout-btn" onClick={handleLogout} style={{
             marginTop: "8px",
@@ -705,8 +717,12 @@ function App() {
             <div className="chat-messages">
               {messages.map((msg) => (
                 <div className="message" key={msg.id}>
-                  <div className={`message-avatar ${msg.role}`}>
-                    {msg.role === "user" ? "👤" : "⚡"}
+                  <div className={`message-avatar ${msg.role}`} style={msg.role === "user" && user?.profile_photo ? { background: "transparent", border: "none" } : {}}>
+                    {msg.role === "user" ? (
+                      user?.profile_photo ? (
+                        <img src={user.profile_photo} alt="User" style={{ width: "100%", height: "100%", borderRadius: "var(--radius-sm)", objectFit: "cover", border: "1px solid var(--border-subtle)" }} />
+                      ) : "👤"
+                    ) : "⚡"}
                   </div>
                   <div className="message-content">
                     <div className="message-sender">

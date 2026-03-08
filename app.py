@@ -3,13 +3,15 @@ from flask_cors import CORS
 import sqlite3
 import json
 import os
+import requests
+from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "default_secret_key")
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 
 
 def get_db():
@@ -38,6 +40,9 @@ def register_user():
     designation = request.form["designation"]
     company_size = request.form["company_size"]
     password = request.form["password"]
+    profile_photo = request.form.get("profile_photo", None)
+
+    hashed_password = generate_password_hash(password)
 
     conn = get_db()
 
@@ -53,9 +58,9 @@ def register_user():
 
     conn.execute(
         """INSERT INTO users 
-        (full_name, email, phone, company_name, designation, company_size, password) 
-        VALUES (?,?,?,?,?,?,?)""",
-        (full_name, email, phone, company_name, designation, company_size, password)
+        (full_name, email, phone, company_name, designation, company_size, password, profile_photo) 
+        VALUES (?,?,?,?,?,?,?,?)""",
+        (full_name, email, phone, company_name, designation, company_size, hashed_password, profile_photo)
     )
 
     conn.commit()
@@ -74,19 +79,20 @@ def login():
     conn = get_db()
 
     user = conn.execute(
-        "SELECT * FROM users WHERE email=? AND password=?",
-        (email, password)
+        "SELECT * FROM users WHERE email=?",
+        (email,)
     ).fetchone()
 
     conn.close()
 
-    if user:
+    if user and check_password_hash(user["password"], password):
         session["user"] = user["full_name"]
         session["email"] = user["email"]
         session["company"] = user["company_name"]
         session["designation"] = user["designation"]
         session["company_size"] = user["company_size"]
         session["phone"] = user["phone"]
+        session["profile_photo"] = user["profile_photo"]
         return redirect("/dashboard")
     else:
         flash("Invalid email or password.", "error")
@@ -104,7 +110,8 @@ def dashboard():
             company=session["company"],
             designation=session["designation"],
             company_size=session["company_size"],
-            phone=session["phone"]
+            phone=session["phone"],
+            profile_photo=session.get("profile_photo")
         )
     else:
         return redirect("/")
@@ -124,6 +131,7 @@ def api_register():
     phone = data.get("phone")
     company_name = data.get("company_name")
     designation = data.get("designation")
+    profile_photo = data.get("profile_photo")
     password = data.get("password")
 
     if not all([full_name, email, password]):
@@ -136,11 +144,13 @@ def api_register():
         conn.close()
         return jsonify({"success": False, "message": "User already exists"}), 409
 
+    hashed_password = generate_password_hash(password)
+
     conn.execute(
         """INSERT INTO users 
-        (full_name, email, phone, company_name, designation, password) 
-        VALUES (?,?,?,?,?,?)""",
-        (full_name, email, phone, company_name, designation, password)
+        (full_name, email, phone, company_name, designation, password, profile_photo) 
+        VALUES (?,?,?,?,?,?,?)""",
+        (full_name, email, phone, company_name, designation, hashed_password, profile_photo)
     )
     conn.commit()
     conn.close()
@@ -155,12 +165,12 @@ def api_login():
 
     conn = get_db()
     user = conn.execute(
-        "SELECT * FROM users WHERE email=? AND password=?",
-        (email, password)
+        "SELECT * FROM users WHERE email=?",
+        (email,)
     ).fetchone()
     conn.close()
 
-    if user:
+    if user and check_password_hash(user["password"], password):
         session["email"] = user["email"]
         return jsonify({
             "success": True, 
@@ -169,7 +179,8 @@ def api_login():
                 "email": user["email"],
                 "company": user["company_name"],
                 "phone": user["phone"],
-                "designation": user["designation"]
+                "designation": user["designation"],
+                "profile_photo": user["profile_photo"]
             }
         })
     else:
@@ -190,7 +201,8 @@ def api_me():
                     "email": user["email"],
                     "company": user["company_name"],
                     "phone": user["phone"],
-                    "designation": user["designation"]
+                    "designation": user["designation"],
+                    "profile_photo": user["profile_photo"]
                 }
             })
     return jsonify({"logged_in": False})
@@ -204,13 +216,16 @@ def api_logout():
 
 @app.route("/api/datasets/upload", methods=["POST"])
 def upload_dataset():
+    email = session.get("email")
+    if not email:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
     data = request.json
-    email = data.get("email")
     filename = data.get("filename")
     content = data.get("content")
     rows_count = data.get("rows_count")
 
-    if not all([email, filename, content]):
+    if not all([filename, content]):
         return jsonify({"success": False, "message": "Missing file data"}), 400
 
     conn = get_db()
@@ -225,9 +240,9 @@ def upload_dataset():
 
 @app.route("/api/datasets/list", methods=["GET"])
 def list_datasets():
-    email = request.args.get("email")
+    email = session.get("email")
     if not email:
-        return jsonify({"success": False, "message": "Email required"}), 400
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     conn = get_db()
     rows = conn.execute(
@@ -250,8 +265,12 @@ def list_datasets():
 
 @app.route("/api/datasets/get/<int:dataset_id>", methods=["GET"])
 def get_dataset(dataset_id):
+    email = session.get("email")
+    if not email:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
     conn = get_db()
-    row = conn.execute("SELECT content, filename FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+    row = conn.execute("SELECT content, filename FROM datasets WHERE id = ? AND user_email = ?", (dataset_id, email)).fetchone()
     conn.close()
     
     if row:
@@ -261,13 +280,16 @@ def get_dataset(dataset_id):
 
 @app.route("/api/chats/save", methods=["POST"])
 def save_chat():
+    email = session.get("email")
+    if not email:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
     data = request.json
     chat_id = data.get("id")
-    email = data.get("email")
     title = data.get("title")
     messages = data.get("messages")
 
-    if not all([chat_id, email, title, messages]):
+    if not all([chat_id, title, messages]):
         return jsonify({"success": False, "message": "Missing chat data"}), 400
 
     conn = get_db()
@@ -282,11 +304,14 @@ def save_chat():
 
 @app.route("/api/chats/delete", methods=["POST"])
 def delete_chat():
+    email = session.get("email")
+    if not email:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
     data = request.json
     chat_id = data.get("id")
-    email = data.get("email")
 
-    if not all([chat_id, email]):
+    if not chat_id:
         return jsonify({"success": False, "message": "Missing info"}), 400
 
     conn = get_db()
@@ -298,9 +323,9 @@ def delete_chat():
 
 @app.route("/api/chats/list", methods=["GET"])
 def list_chats():
-    email = request.args.get("email")
+    email = session.get("email")
     if not email:
-        return jsonify({"success": False, "message": "Email required"}), 400
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     conn = get_db()
     rows = conn.execute(
@@ -319,6 +344,43 @@ def list_chats():
     
     conn.close()
     return jsonify({"success": True, "chats": chats})
+
+
+@app.route("/api/generate_dashboard", methods=["POST"])
+def generate_dashboard():
+    email = session.get("email")
+    if not email:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.json
+    messages = data.get("messages", [])
+    
+    api_key = os.getenv("REACT_APP_GROQ_API_KEY")
+    if not api_key:
+        return jsonify({"error": "API key missing"}), 500
+        
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": messages,
+                "temperature": 0,
+                "stream": False,
+                "response_format": {"type": "json_object"}
+            }
+        )
+        if response.status_code != 200:
+            return jsonify({"error": f"API Error: {response.text}"}), response.status_code
+            
+        result = response.json()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

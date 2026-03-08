@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users(
     company_name TEXT NOT NULL,
     designation TEXT NOT NULL,
     password TEXT NOT NULL,
+    profile_photo TEXT,
     registered_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
