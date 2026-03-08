@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Executive Portal - Your executive dashboard">
+    <title>Executive Portal | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-user-info {
+            text-align: right;
+        }
+
+        .nav-user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-user-role {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-logout {
+            padding: 9px 20px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            color: #fca5a5;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* Main Container */
+        .main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 40px 60px;
+        }
+
+        /* Welcome Section */
+        .welcome {
+            margin-bottom: 36px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .welcome h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .welcome h1 span {
+            background: linear-gradient(135deg, #667eea, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome p {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 15px;
+        }
+
+        /* Profile Card Grid */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 32px;
+            animation: slideUp 0.6s ease-out 0.1s both;
+        }
+
+        .profile-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 28px;
+            transition: all 0.3s ease;
+        }
+
+        .profile-card:hover {
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+        }
+
+        .card-icon.personal { background: rgba(102, 126, 234, 0.15); }
+        .card-icon.company  { background: rgba(167, 139, 250, 0.15); }
+        .card-icon.industry { background: rgba(52, 211, 153, 0.15); }
+        .card-icon.team     { background: rgba(251, 191, 36, 0.15); }
+
+        .card-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 6px;
+        }
+
+        .card-value {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .card-sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 4px;
+        }
+
+        /* Executive Info Table */
+        .info-section {
+            animation: slideUp 0.7s ease-out 0.2s both;
+        }
+
+        .info-section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            letter-spacing: -0.3px;
+        }
+
+        .info-table {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 16px 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s ease;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .info-key {
+            width: 180px;
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .info-val {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 14px 20px;
+            }
+
+            .main {
+                padding: 24px 20px;
+            }
+
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome h1 {
+                font-size: 24px;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+                padding: 14px 20px;
+            }
+
+            .info-key {
+                width: auto;
+                font-size: 12px;
+            }
+
+            .nav-user-info {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-logo">🏢</div>
+            <span class="nav-title">Executive Portal</span>
+        </div>
+        <div class="nav-user">
+            <div class="nav-user-info">
+                <div class="nav-user-name">{{ user }}</div>
+                <div class="nav-user-role">{{ designation }}</div>
+            </div>
+            <a href="/logout" class="btn-logout" id="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main">
+
+        <!-- Welcome -->
+        <div class="welcome">
+            <h1>Welcome, <span>{{ user }}</span></h1>
+            <p>Here's your executive profile overview</p>
+        </div>
+
+        <!-- Profile Cards -->
+        <div class="profile-grid">
+            <div class="profile-card">
+                <div class="card-icon personal">👤</div>
+                <div class="card-label">Executive</div>
+                <div class="card-value">{{ user }}</div>
+                <div class="card-sub">{{ designation }}</div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-icon company">🏛️</div>
+                <div class="card-label">Company</div>
+                <div class="card-value">{{ company }}</div>
+                <div class="card-sub">{{ company_size }}</div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-icon industry">📞</div>
+                <div class="card-label">Contact</div>
+                <div class="card-value">{{ phone }}</div>
+                <div class="card-sub">Phone Number</div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-icon team">✅</div>
+                <div class="card-label">Account Status</div>
+                <div class="card-value"><span class="badge badge-active">Active</span></div>
+                <div class="card-sub">Verified Executive</div>
+            </div>
+        </div>
+
+        <!-- Detailed Info -->
+        <div class="info-section">
+            <h2>Profile Details</h2>
+            <div class="info-table">
+                <div class="info-row">
+                    <div class="info-key">Full Name</div>
+                    <div class="info-val">{{ user }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-key">Email</div>
+                    <div class="info-val">{{ email }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-key">Phone</div>
+                    <div class="info-val">{{ phone }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-key">Company</div>
+                    <div class="info-val">{{ company }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-key">Designation</div>
+                    <div class="info-val">{{ designation }}</div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-key">Company Size</div>
+                    <div class="info-val">{{ company_size }}</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
