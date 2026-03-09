@@ -146,6 +146,44 @@ def list_datasets():
         datasets.append({"id": str(doc["_id"]), "filename": doc["filename"], "rows": doc.get("rows_count")})
     return jsonify({"success": True, "datasets": datasets})
 
+@app.route("/api/datasets/get/<dataset_id>", methods=["GET"])
+def get_dataset(dataset_id):
+    """Retrieves the full dataset content by ID."""
+    if "email" not in session: return jsonify({"error": "Unauthorized"}), 401
+    try:
+        doc = db.datasets.find_one({"_id": ObjectId(dataset_id), "user_email": session["email"]})
+        if not doc:
+            return jsonify({"error": "Dataset not found"}), 404
+        return jsonify({
+            "success": True, 
+            "dataset": {
+                "filename": doc["filename"], 
+                "content": doc.get("content", [])
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/datasets/delete", methods=["POST"])
+def delete_dataset():
+    """Deletes a specific dataset from the database."""
+    if "email" not in session: return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    dataset_id = data.get("id")
+    
+    if not dataset_id:
+        return jsonify({"success": False, "message": "Missing dataset ID"}), 400
+        
+    try:
+        result = db.datasets.delete_one({"_id": ObjectId(dataset_id), "user_email": session["email"]})
+        if result.deleted_count > 0:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Dataset not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 # --- CHAT HISTORY PERSISTENCE (MongoDB) ---
 # These routes resolve the 404 OPTIONS errors you were seeing from the frontend
@@ -170,6 +208,7 @@ def save_chat():
         {"$set": {
             "title": title,
             "messages": messages,
+            "dataFileName": data.get("dataFileName", ""),
             "timestamp": datetime.datetime.utcnow().isoformat()
         }},
         upsert=True
@@ -191,6 +230,7 @@ def list_chats():
             chats[c_id] = {
                 "id": c_id,
                 "title": doc.get("title", "Dashboard"),
+                "dataFileName": doc.get("dataFileName", ""),
                 "messages": doc.get("messages", []),
                 "timestamp": doc.get("timestamp", "")
             }
@@ -317,13 +357,22 @@ def generate_dashboard():
         # --- SELF-HEALING AI LOOP END ---
 
         # Step 5: Decision on Visualization Type (Anti-Vibe Coding)
-        # If the result is exactly 1 row and 1 column, it's a single scalar value (e.g., a total sum).
+        # If the result is exactly 1 row and 1 column, it's a single scalar value.
         if result_df.shape == (1, 1):
             chart_type = "text"
+        elif len(result_df.columns) > 2:
+            chart_type = "table"
         else:
-            # For multiple rows, use a tiny prompt to decide which chart fits the result set best.
+            # For multiple rows, use a tiny prompt to decide which chart fits.
             viz_prompt = f"User asked: '{user_query}'. Columns returned: {list(result_df.columns)}. Pick one: 'bar', 'line', or 'pie'."
             chart_type = llm.invoke(viz_prompt).content.strip().lower()
+
+        # Build table data for ALL queries so they can be exported/shown
+        table_data = {
+            "show": True if chart_type == "table" else False,
+            "columns": list(result_df.columns),
+            "rows": result_df.fillna("").values.tolist()
+        }
 
         # Step 6: Convert Results to React 'Recharts' format {x, y}
         chart_data = []
@@ -331,30 +380,35 @@ def generate_dashboard():
 
         for i, row in result_df.iterrows():
             if is_single_scalar:
-                # Handle exactly 1 row and 1 column safely
-                chart_data.append({
-                    "x": "Total",
-                    "y": float(row.iloc[0]) if pd.notnull(row.iloc[0]) else 0
-                })
+                val = row.iloc[0]
+                try:
+                    out_val = float(val) if pd.notnull(val) else 0
+                except (ValueError, TypeError):
+                    out_val = val
+                chart_data.append({"x": "Total", "y": out_val})
             elif len(result_df.columns) == 1:
-                # Fallback: If LLM grouped data but STILL forgot the label column
-                chart_data.append({
-                    "x": f"Group {i+1}", 
-                    "y": float(row.iloc[0]) if pd.notnull(row.iloc[0]) else 0
-                })
+                val = row.iloc[0]
+                try: 
+                    out_val = float(val) if pd.notnull(val) else 0
+                except (ValueError, TypeError): 
+                    out_val = val
+                chart_data.append({"x": f"Group {i+1}", "y": out_val})
             else:
-                # Standard mapping: Column 0 is Label (X), Column 1 is Value (Y)
-                chart_data.append({
-                    "x": str(row.iloc[0]), 
-                    "y": float(row.iloc[1]) if pd.notnull(row.iloc[1]) else 0 
-                })
+                val = row.iloc[1]
+                try:
+                    out_val = float(val) if pd.notnull(val) else 0
+                except (ValueError, TypeError):
+                    out_val = val
+                chart_data.append({"x": str(row.iloc[0]), "y": out_val})
 
         # Step 7: Build final JSON response
         agent_output = json.dumps({
-            "chart_type": chart_type if chart_type in ['bar', 'line', 'pie', 'text'] else 'bar',
+            "chart_type": chart_type if chart_type in ['bar', 'line', 'pie', 'text', 'table'] else 'bar',
             "title": f"Report for: {user_query}",
             "description": f"Analyzed {len(df)} rows. Found {len(result_df)} records.",
-            "data": chart_data
+            "data": chart_data,
+            "table": table_data,
+            "sql": clean_sql
         })
 
         # Cache this output for future sessions

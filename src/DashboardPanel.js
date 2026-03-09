@@ -282,7 +282,7 @@ function renderChart(type, data, xKey, yKeys) {
   switch (type) {
     case "bar":
       return (
-        <BarChart data={data}>
+        <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 50 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis
             dataKey={xKey}
@@ -297,7 +297,7 @@ function renderChart(type, data, xKey, yKeys) {
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
-          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "10px" }} />
+          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "30px" }} />
           {showBrush && <Brush dataKey={xKey} height={20} stroke="#6c63ff" fill="#111128" tickFormatter={() => ''} />}
           {yKeys.map((key, i) => (
             <Bar
@@ -313,7 +313,7 @@ function renderChart(type, data, xKey, yKeys) {
 
     case "line":
       return (
-        <LineChart data={data}>
+        <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 50 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis
             dataKey={xKey}
@@ -328,7 +328,7 @@ function renderChart(type, data, xKey, yKeys) {
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "10px" }} />
+          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "30px" }} />
           {showBrush && <Brush dataKey={xKey} height={20} stroke="#6c63ff" fill="#111128" tickFormatter={() => ''} />}
           {yKeys.map((key, i) => (
             <Line
@@ -347,7 +347,7 @@ function renderChart(type, data, xKey, yKeys) {
 
     case "area":
       return (
-        <AreaChart data={data}>
+        <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 50 }}>
           <defs>
             {yKeys.map((key, i) => (
               <linearGradient key={key} id={`area-${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -370,7 +370,7 @@ function renderChart(type, data, xKey, yKeys) {
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "10px" }} />
+          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0", paddingTop: "30px" }} />
           {showBrush && <Brush dataKey={xKey} height={20} stroke="#6c63ff" fill="#111128" tickFormatter={() => ''} />}
           {yKeys.map((key, i) => (
             <Area
@@ -386,12 +386,30 @@ function renderChart(type, data, xKey, yKeys) {
         </AreaChart>
       );
 
-    case "pie":
+    case "pie": {
       const pieDataKey = yKeys[0] || "value";
+      
+      // Limit to max 10 slices, bundle the rest into "Other"
+      let chartData = [...data];
+      if (chartData.length > 10) {
+        chartData.sort((a, b) => (b[pieDataKey] || 0) - (a[pieDataKey] || 0));
+        const top10 = chartData.slice(0, 10);
+        const others = chartData.slice(10);
+        
+        const otherSum = others.reduce((sum, item) => sum + (item[pieDataKey] || 0), 0);
+        if (otherSum > 0) {
+          top10.push({
+            [xKey]: "Other",
+            [pieDataKey]: otherSum
+          });
+        }
+        chartData = top10;
+      }
+
       return (
         <PieChart>
           <Pie
-            data={data}
+            data={chartData}
             dataKey={pieDataKey}
             nameKey={xKey}
             cx="50%"
@@ -403,7 +421,7 @@ function renderChart(type, data, xKey, yKeys) {
             labelLine={false}
             animationDuration={800}
           >
-            {data.map((_, i) => (
+            {chartData.map((_, i) => (
               <Cell
                 key={i}
                 fill={CHART_COLORS[i % CHART_COLORS.length]}
@@ -412,9 +430,9 @@ function renderChart(type, data, xKey, yKeys) {
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: "0.8rem", color: "#a0a0c0" }} />
         </PieChart>
       );
+    }
 
     default:
       return null;

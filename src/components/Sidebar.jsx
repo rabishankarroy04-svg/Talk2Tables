@@ -9,6 +9,7 @@ const Sidebar = ({
     currentChatId,
     handleNewChat,
     handleLoadStoredDataset,
+    handleDeleteDataset,
     setCurrentChatId,
     handleDeleteChat,
     handleLogout
@@ -74,17 +75,56 @@ const Sidebar = ({
                 {userDatasets.length > 0 && (
                     <div style={{ marginBottom: "20px" }}>
                         <div className="history-section-title">Stored Datasets</div>
-                        {userDatasets.map((ds) => (
-                            <div
-                                key={ds.id}
-                                className={`history-item ${dataFileName && dataFileName.startsWith(ds.filename) ? "active" : ""}`}
-                                onClick={() => handleLoadStoredDataset(ds.id)}
-                                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px" }}
-                            >
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", fontSize: "0.8rem" }}>📄 {ds.filename}</span>
-                                <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>{ds.rows_count} rows</span>
-                            </div>
-                        ))}
+                        <div className="sidebar-section-list">
+                            {userDatasets.map((ds) => (
+                                <div
+                                    key={ds.id}
+                                    className={`sidebar-item ${dataFileName && dataFileName.startsWith(ds.filename) ? "active" : ""}`}
+                                    onClick={() => handleLoadStoredDataset(ds.id)}
+                                    style={{ justifyContent: "space-between" }}
+                                    onMouseEnter={(e) => {
+                                        const btn = e.currentTarget.querySelector('.delete-button');
+                                        if (btn) btn.style.display = 'block';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const btn = e.currentTarget.querySelector('.delete-button');
+                                        if (btn) btn.style.display = 'none';
+                                    }}
+                                >
+                                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, overflow: "hidden" }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        <span className="sidebar-item-title" title={ds.filename}>
+                                            {ds.filename}
+                                        </span>
+                                    </div>
+                                    <button
+                                        className="delete-button"
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteDataset(ds.id, e); }}
+                                        style={{
+                                            display: "none",
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            padding: "2px",
+                                            opacity: 0.6,
+                                            fontSize: "1rem"
+                                        }}
+                                        title="Delete Dataset"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -148,10 +188,7 @@ const Sidebar = ({
                         </span>
                     </div>
                 )}
-                <div className="sidebar-footer-item">
-                    <span>🚀</span>
-                    <span>Powered by Groq AI</span>
-                </div>
+
                 <button className="logout-btn" onClick={handleLogout} style={{
                     marginTop: "8px",
                     padding: "8px",
