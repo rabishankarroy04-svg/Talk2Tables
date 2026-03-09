@@ -288,7 +288,7 @@ def generate_dashboard():
 
         # Step 2: Initialize LLM 
         llm = ChatOpenAI(
-            model="liquid/lfm-2.5-1.2b-thinking:free",
+            model="google/gemini-2.0-flash-001",
             api_key=os.getenv("OPENROUTER_API_KEY"),
             base_url="https://openrouter.ai/api/v1",
             temperature=0, # Temperature 0 ensures the AI doesn't get 'creative' with SQL syntax.
