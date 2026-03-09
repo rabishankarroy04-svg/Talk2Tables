@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ─── Main Layout ─── */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ─── Welcome Screen ─── */
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 40px 24px;
+}
+
+/* Ambient orbs behind the welcome content */
+.welcome-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 0;
+  animation: welcomeOrbFloat 10s ease-in-out infinite;
+}
+.welcome-orb-1 {
+  width: 400px; height: 400px;
+  background: #a78bfa;
+  top: -80px; left: -80px;
+  animation-delay: 0s;
+}
+.welcome-orb-2 {
+  width: 320px; height: 320px;
+  background: #6c63ff;
+  bottom: -60px; right: -60px;
+  animation-delay: -5s;
+}
+
+@keyframes welcomeOrbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-20px) scale(1.05); }
+}
+
+/* ─── Welcome Inner Content ─── */
+.welcome-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 680px;
+  width: 100%;
+  animation: welcomeFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes welcomeFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Badge ─── */
+.welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c63ff;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 12px rgba(108, 99, 255, 0.1);
+}
+
+.welcome-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6c63ff;
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(108, 99, 255, 0); }
+}
+
+/* ─── Heading ─── */
+.welcome-heading {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #1a1830;
+  margin: 0 0 18px;
+}
+
+.welcome-heading em {
+  font-style: italic;
+  background: linear-gradient(135deg, #6c63ff, #a78bfa, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Subtext ─── */
+.welcome-sub {
+  font-size: 1rem;
+  color: #5a567a;
+  max-width: 480px;
+  line-height: 1.75;
+  margin: 0 0 40px;
+}
+
+/* ─── Suggestion Cards ─── */
+.welcome-suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 580px;
+  margin-bottom: 28px;
+}
+
+.suggestion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 16px rgba(108, 99, 255, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              background 0.25s ease,
+              border-color 0.25s ease;
+}
+
+.suggestion-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(108, 99, 255, 0.15);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(108, 99, 255, 0.22);
+}
+
+.suggestion-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.suggestion-text {
+  font-size: 0.85rem;
+  color: #3d3a5c;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ─── Upload Button ─── */
+.welcome-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #3d3a5c, #6c63ff);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.welcome-upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(108, 99, 255, 0.45);
+}

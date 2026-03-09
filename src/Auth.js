@@ -24,7 +24,6 @@ const Auth = ({ onLogin }) => {
   };
 
   const validatePhone = (phone) => {
-    // Basic validation for 10+ digits with optional + prefix
     return String(phone).match(/^\+?[\d\s-]{10,15}$/);
   };
 

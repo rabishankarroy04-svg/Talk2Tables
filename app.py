@@ -43,9 +43,8 @@ MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/ai_dashboard")
 dashboard_cache = {} 
 
 try:
-    # Connect to MongoDB. tlsInsecure=True is used to bypass SSL verification in local dev environments.
-    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000, tls=True, tlsInsecure=True)
-    mongo_client.server_info() # Check connection immediately
+    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    mongo_client.server_info()
     db = mongo_client.get_database()
     print("Successfully connected to MongoDB.")
 except Exception as e:
@@ -57,6 +56,9 @@ except Exception as e:
 @app.route("/api/register", methods=["POST"])
 def api_register():
     """Extracts user registration data and stores hashed passwords in MongoDB."""
+    if db is None:
+        return jsonify({"success": False, "message": "Database not connected. Please ensure MongoDB is running."}), 500
+        
     data = request.json
     email = data.get("email")
     
@@ -81,6 +83,9 @@ def api_register():
 @app.route("/api/login", methods=["POST"])
 def api_login():
     """Verifies credentials and sets up a server-side session."""
+    if db is None:
+        return jsonify({"success": False, "message": "Database not connected. Please ensure MongoDB is running."}), 500
+        
     data = request.json
     user = db.users.find_one({"email": data.get("email")})
     

@@ -1,0 +1,94 @@
+.upload-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 26, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.upload-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 40px;
+    max-width: 520px;
+    width: 90%;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+}
+
+.upload-modal h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+}
+
+.upload-modal p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+}
+
+.upload-dropzone {
+    border: 2px dashed var(--border-active);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    cursor: pointer;
+    transition: var(--transition-base);
+    margin-bottom: 16px;
+    background: var(--bg-secondary);
+}
+
+.upload-dropzone:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+}
+
+.upload-dropzone .upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.upload-dropzone .upload-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.upload-dropzone .upload-hint {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+.upload-close-btn {
+    padding: 8px 24px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.upload-close-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
